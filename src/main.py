@@ -14,6 +14,8 @@ def main():
     chat_id = environ.get("CHAT_ID")
     if chat_id is None:
         logging.fatal("could not load chat id")
+    else:
+        chat_id = int(chat_id)
 
     broker_host = environ.get("MQTT_HOST")
     broker_port = environ.get("MQTT_PORT")
