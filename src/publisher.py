@@ -12,10 +12,10 @@ class Publisher:
 
     def publish(self, topic: str, message):
         res = self.__client.publish(topic=topic, payload=message)
-        if res == 0:
+        if res.rc == 0:
             logging.info(f"sent message to `{topic}`")
         else:
-            logging.error(f"failed to send message to `{topic}`")
+            logging.error(f"failed to send message to `{topic}`, res: %d\n", res.rc)
 
     def __on_connect(self, client, userdata, flags, rc):
         if rc == 0:
