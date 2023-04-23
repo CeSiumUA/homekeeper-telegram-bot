@@ -5,20 +5,30 @@ import validators
 import topics
 
 class Bot:
+
+    YOUTUBE_DOWNLOAD = 0
+
+
     def __init__(self, token: str, chat_id: int) -> None:
         self.__token = token
         self.__chat_id = chat_id
 
+    async def __video_download_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        logging.info("got YouTube download request")
+        await update.message.reply_text("Enter a video url")
+        
+        return self.YOUTUBE_DOWNLOAD
+    
     async def __video_download(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         url = update.message.text
-        logging.info(f"got YouTube download request, url: {url}")
         if not validators.url(url):
-            await update.message.reply_text("Invalid url")
-        else:
-            self.__publish_callback(topics.VIDEO_DOWNLOAD, url)
-            await update.message.reply_text("Video download queued")
+            await update.message.reply_text("Invalid url, try again")
+            return self.YOUTUBE_DOWNLOAD
+        
+        self.__publish_callback(topics.VIDEO_DOWNLOAD, url)
+        await update.message.reply_text("Video download queued")
         return ConversationHandler.END
-    
+
     async def __cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
@@ -32,9 +42,11 @@ class Bot:
 
         conversation_handler = ConversationHandler(
             entry_points=[
-                CommandHandler("download", self.__video_download, filters=filters.Chat(self.__chat_id))
+                CommandHandler("ytdownload", self.__video_download_start, filters=filters.Chat(self.__chat_id))
             ],
-            states={},
+            states={
+                self.YOUTUBE_DOWNLOAD: [MessageHandler(filters=filters.TEXT, callback=self.__video_download)]
+            },
             fallbacks=[CommandHandler("cancel", self.__cancel)]
         )
 
