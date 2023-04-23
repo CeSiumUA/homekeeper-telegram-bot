@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 from os import environ
 import logging
-from bot import start_bot
+from bot import Bot
 from publisher import Publisher
 
 def main():
@@ -11,13 +11,20 @@ def main():
     if token is None:
         logging.fatal("could not load telegram token")
 
+    chat_id = environ.get("CHAT_ID")
+    if chat_id is None:
+        logging.fatal("could not load chat id")
+
     broker_host = environ.get("MQTT_HOST")
     broker_port = environ.get("MQTT_PORT")
     if broker_port is None:
         broker_port = 1883
+    else:
+        broker_port = int(broker_port)
 
-    with Publisher(broker_host, broker_port) as publisher:
-        start_bot(token=token)
+    bot = Bot(token=token, chat_id=chat_id)
+    with Publisher(broker_host, broker_port, bot.send_message) as publisher:
+        bot.start_bot(publish_callback=publisher.publish)
 
 if __name__ == '__main__':
     main()

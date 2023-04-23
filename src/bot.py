@@ -5,8 +5,9 @@ import validators
 import topics
 
 class Bot:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, token: str, chat_id: int) -> None:
+        self.__token = token
+        self.__chat_id = chat_id
 
     async def __video_download(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         url = update.message.text
@@ -17,18 +18,25 @@ class Bot:
             self.__publish_callback(topics.VIDEO_DOWNLOAD, url)
             await update.message.reply_text("Video download queued")
         return ConversationHandler.END
+    
+    async def __cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        return ConversationHandler.END
 
-    def start_bot(self, token: str, publish_callback):
-        app = Application.builder().token(token=token).build()
+    def send_message(self, message):
+        self.__app.bot.send_message(self.__chat_id, text=message)
+
+    def start_bot(self, publish_callback):
+        self.__app = Application.builder().token(token=self.__token).build()
 
         self.__publish_callback = publish_callback
 
         conversation_handler = ConversationHandler(
             entry_points=[
-                CommandHandler("video-download", self.__video_download)
-            ]
+                CommandHandler("download", self.__video_download, filters=filters.Chat(self.__chat_id))
+            ],
+            states={},
+            fallbacks=[CommandHandler("cancel", self.__cancel)]
         )
 
-        app.add_handler(conversation_handler)
-
-        app.run_polling()
+        self.__app.add_handler(conversation_handler)
+        self.__app.run_polling()
