@@ -29,6 +29,11 @@ class Bot:
         await update.message.reply_text("Video download queued")
         return ConversationHandler.END
 
+    async def __get_ip_address(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        self.__publish_callback(topics.GET_IP_ADDRESS, None)
+        await update.message.reply_text("Getting IP address...")
+        return ConversationHandler.END
+    
     async def __cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
@@ -42,7 +47,8 @@ class Bot:
 
         conversation_handler = ConversationHandler(
             entry_points=[
-                CommandHandler("ytdownload", self.__video_download_start, filters=filters.Chat(self.__chat_id))
+                CommandHandler("ytdownload", self.__video_download_start, filters=filters.Chat(self.__chat_id)),
+                CommandHandler("ipaddress", self.__get_ip_address, filters=filters.Chat(self.__chat_id))
             ],
             states={
                 self.YOUTUBE_DOWNLOAD: [MessageHandler(filters=filters.TEXT, callback=self.__video_download)]
