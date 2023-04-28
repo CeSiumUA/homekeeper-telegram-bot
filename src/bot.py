@@ -21,7 +21,9 @@ class Bot:
     
     async def __video_download(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         url = update.message.text
+        logging.info("got YouTube url %s\n", url)
         if not validators.url(url):
+            logging.error("url %s is invalid\n", url)
             await update.message.reply_text("Invalid url, try again")
             return self.YOUTUBE_DOWNLOAD
         
@@ -30,6 +32,7 @@ class Bot:
         return ConversationHandler.END
 
     async def __get_ip_address(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        logging.info("got ip address determination request")
         self.__publish_callback(topics.GET_IP_ADDRESS, None)
         await update.message.reply_text("Getting IP address...")
         return ConversationHandler.END
