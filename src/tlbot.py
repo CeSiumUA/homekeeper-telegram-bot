@@ -1,10 +1,10 @@
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, Bot
 from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters
 import logging
 import validators
 import topics
 
-class Bot:
+class TlBot:
 
     YOUTUBE_DOWNLOAD = 0
 
@@ -40,8 +40,9 @@ class Bot:
     async def __cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
-    def send_message(self, message):
-        self.__app.bot.send_message(self.__chat_id, text=message)
+    async def send_message(self, message):
+        async with Bot(token=self.__token) as bot:
+            await bot.send_message(chat_id=self.__chat_id, text=message, parse_mode='MarkdownV2')
 
     def start_bot(self, publish_callback):
         self.__app = Application.builder().token(token=self.__token).build()

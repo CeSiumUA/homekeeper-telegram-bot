@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 from os import environ
 import logging
-from bot import Bot
+from tlbot import TlBot
 from publisher import Publisher
 
 def main():
@@ -24,7 +24,7 @@ def main():
     else:
         broker_port = int(broker_port)
 
-    bot = Bot(token=token, chat_id=chat_id)
+    bot = TlBot(token=token, chat_id=chat_id)
     with Publisher(broker_host, broker_port, bot.send_message) as publisher:
         bot.start_bot(publish_callback=publisher.publish)
 

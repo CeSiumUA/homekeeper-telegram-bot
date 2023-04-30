@@ -1,6 +1,7 @@
 import random
 import logging
 import topics
+import asyncio
 from paho.mqtt.client import Client
 
 class Publisher:
@@ -24,7 +25,7 @@ class Publisher:
             logging.fatal("failed to connect to MQTT, code: %d\n", rc)
 
     def __on_message(self, client, userdata, msg):
-        self.__msg_callback(msg.payload.decode())
+        asyncio.run(self.__msg_callback(msg.payload.decode()))
 
     def __enter__(self):
         self.__client = Client(self.__client_id)
