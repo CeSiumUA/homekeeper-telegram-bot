@@ -3,6 +3,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes, Conversation
 import logging
 import validators
 import topics
+import random
 
 class TlBot:
 
@@ -16,7 +17,7 @@ class TlBot:
     async def __video_download_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.info("got YouTube download request")
         await update.message.reply_text("Enter a video url")
-        
+        self.__bot_context = context
         return self.YOUTUBE_DOWNLOAD
     
     async def __video_download(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -26,23 +27,28 @@ class TlBot:
             logging.error("url %s is invalid\n", url)
             await update.message.reply_text("Invalid url, try again")
             return self.YOUTUBE_DOWNLOAD
-        
         self.__publish_callback(topics.VIDEO_DOWNLOAD, url)
         await update.message.reply_text("Video download queued")
+        self.__bot_context = context
         return ConversationHandler.END
 
     async def __get_ip_address(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.info("got ip address determination request")
         self.__publish_callback(topics.GET_IP_ADDRESS, None)
         await update.message.reply_text("Getting IP address...")
+        self.__bot_context = context
         return ConversationHandler.END
     
     async def __cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        self.__bot_context = context
         return ConversationHandler.END
+    
+    async def __send_scheduled_message(self, context: ContextTypes.DEFAULT_TYPE):
+        job = context.job
+        await context.bot.send_message(job.chat_id, text=job.data)
 
-    async def send_message(self, message):
-        async with Bot(token=self.__token) as bot:
-            await bot.send_message(chat_id=self.__chat_id, text=message, parse_mode='MarkdownV2')
+    def send_message(self, message):
+            self.__bot_context.job_queue.run_once(self.__send_scheduled_message, when=1, data=message, chat_id=self.__chat_id, name=f'send-message-{random.randint(0, 1000)}')
 
     def start_bot(self, publish_callback):
         self.__app = Application.builder().token(token=self.__token).build()
@@ -59,6 +65,5 @@ class TlBot:
             },
             fallbacks=[CommandHandler("cancel", self.__cancel)]
         )
-
         self.__app.add_handler(conversation_handler)
         self.__app.run_polling()
