@@ -18,11 +18,16 @@ def main():
         chat_id = int(chat_id)
 
     broker_host = environ.get("MQTT_HOST")
+    if broker_host is None:
+        logging.fatal("could not load mqtt host")
+    else:
+        logging.info("MQTT host: %s", broker_host)
     broker_port = environ.get("MQTT_PORT")
     if broker_port is None:
         broker_port = 1883
     else:
         broker_port = int(broker_port)
+    logging.info("MQTT port: %d", broker_port)
 
     bot = TlBot(token=token, chat_id=chat_id)
     with Publisher(broker_host, broker_port, bot.send_message) as publisher:
