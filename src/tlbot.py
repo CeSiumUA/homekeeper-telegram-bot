@@ -15,12 +15,13 @@ class TlBot:
         self.__chat_id = chat_id
 
     async def __video_download_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        self.__bot_context = context
         logging.info("got YouTube download request")
         await update.message.reply_text("Enter a video url")
-        self.__bot_context = context
         return self.YOUTUBE_DOWNLOAD
     
     async def __video_download(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        self.__bot_context = context
         url = update.message.text
         logging.info("got YouTube url %s\n", url)
         if not validators.url(url):
@@ -29,14 +30,13 @@ class TlBot:
             return self.YOUTUBE_DOWNLOAD
         self.__publish_callback(topics.VIDEO_DOWNLOAD, url)
         await update.message.reply_text("Video download queued")
-        self.__bot_context = context
         return ConversationHandler.END
 
     async def __get_ip_address(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        self.__bot_context = context
         logging.info("got ip address determination request")
         self.__publish_callback(topics.GET_IP_ADDRESS, None)
         await update.message.reply_text("Getting IP address...")
-        self.__bot_context = context
         return ConversationHandler.END
     
     async def __cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
