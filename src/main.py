@@ -29,8 +29,11 @@ def main():
         broker_port = int(broker_port)
     logging.info("MQTT port: %d", broker_port)
 
+    broker_username = environ.get("MQTT_USERNAME")
+    broker_password = environ.get("MQTT_PASSWORD")
+
     bot = TlBot(token=token, chat_id=chat_id)
-    with Publisher(broker_host, broker_port, bot.send_message) as publisher:
+    with Publisher(broker_host, broker_port, bot.send_message, broker_username=broker_username, broker_password=broker_password) as publisher:
         bot.start_bot(publish_callback=publisher.publish)
 
 if __name__ == '__main__':

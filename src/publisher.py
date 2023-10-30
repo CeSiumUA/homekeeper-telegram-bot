@@ -4,9 +4,11 @@ import topics
 from paho.mqtt.client import Client
 
 class Publisher:
-    def __init__(self, address: str, port: int, on_message, client_id: str | None = None) -> None:
+    def __init__(self, address: str, port: int, on_message, client_id: str | None = None, broker_username: str | None = None, broker_password: str | None = None) -> None:
         self.__address = address
         self.__port = port
+        self.__broker_username = broker_username
+        self.__broker_password = broker_password
         self.__client_id = client_id if client_id is not None else f'telegram-{random.randint(0, 1000)}'
         self.__msg_callback = on_message
 
@@ -29,6 +31,8 @@ class Publisher:
     def __enter__(self):
         self.__client = Client(self.__client_id)
         self.__client.on_connect = self.__on_connect
+        if self.__broker_username is not None:
+            self.__client.username_pw_set(self.__broker_username, self.__broker_password)
         self.__client.connect(self.__address, self.__port)
         self.__client.loop_start()
         self.__client.subscribe(topic=topics.SEND_MESSAGE)
