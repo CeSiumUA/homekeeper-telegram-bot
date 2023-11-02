@@ -1,10 +1,11 @@
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, Bot
-from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters, CallbackContext
 import logging
 import validators
 import topics
 import random
 import asyncio
+import json
 
 class TlBot:
 
@@ -41,6 +42,23 @@ class TlBot:
         await update.message.reply_text("Getting IP address...")
         return ConversationHandler.END
     
+    async def __power_the_device(self, update: Update, context: CallbackContext):
+        self.__bot_context = context
+        logging.info("got power request")
+        args = context.args
+        if len(args) != 2:
+            await update.message.reply_text("You've provided incorrect command format")
+            return
+        device_name = args[0]
+        state = True if args[1].lower() == 'on' else False
+        payload = {
+            "device_name": device_name,
+            "state": state
+        }
+        self.__publish_callback(topics.DEVICE_TOGGLE, json.dumps(payload))
+        await update.message.reply_text(f"Device {device_name} set to {state}")
+        return ConversationHandler.END
+    
     async def __cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         self.__bot_context = context
         return ConversationHandler.END
@@ -61,7 +79,8 @@ class TlBot:
         conversation_handler = ConversationHandler(
             entry_points=[
                 CommandHandler("ytdownload", self.__video_download_start, filters=filters.Chat(self.__chat_id)),
-                CommandHandler("ipaddress", self.__get_ip_address, filters=filters.Chat(self.__chat_id))
+                CommandHandler("ipaddress", self.__get_ip_address, filters=filters.Chat(self.__chat_id)),
+                CommandHandler("power", self.__power_the_device, filters=filters.Chat(self.__chat_id))
             ],
             states={
                 self.YOUTUBE_DOWNLOAD: [MessageHandler(filters=filters.TEXT, callback=self.__video_download)]
