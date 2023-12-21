@@ -1,38 +1,19 @@
-from dotenv import load_dotenv
-from os import environ
+from env import Env
 import logging
 from tlbot import TlBot
 from publisher import Publisher
 
 def main():
     logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
-    load_dotenv()
-    token = environ.get("TL_TOKEN")
-    if token is None:
-        logging.fatal("could not load telegram token")
-
-    chat_id = environ.get("CHAT_ID")
-    if chat_id is None:
-        logging.fatal("could not load chat id")
+    
+    if Env.load_required_values():
+        logging.info('env verified')
     else:
-        chat_id = int(chat_id)
+        logging.fatal('not enough variable set')
 
-    broker_host = environ.get("MQTT_HOST")
-    if broker_host is None:
-        logging.fatal("could not load mqtt host")
-    else:
-        logging.info("MQTT host: %s", broker_host)
-    broker_port = environ.get("MQTT_PORT")
-    if broker_port is None:
-        broker_port = 1883
-    else:
-        broker_port = int(broker_port)
-    logging.info("MQTT port: %d", broker_port)
+    broker_host, broker_port, broker_username, broker_password = Env.get_mqtt_connection_params()
 
-    broker_username = environ.get("MQTT_USERNAME")
-    broker_password = environ.get("MQTT_PASSWORD")
-
-    bot = TlBot(token=token, chat_id=chat_id)
+    bot = TlBot(token=Env.get_tl_token(), chat_id=Env.get_tl_chat_id())
     with Publisher(broker_host, broker_port, bot.send_message, broker_username=broker_username, broker_password=broker_password) as publisher:
         bot.start_bot(publish_callback=publisher.publish)
 

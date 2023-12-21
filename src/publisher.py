@@ -13,7 +13,7 @@ class Publisher:
         self.__msg_callback = on_message
 
     def publish(self, topic: str, message):
-        res = self.__client.publish(topic=topic, payload=message)
+        res = self.__client.publish(topic=topic, payload=message, qos=2)
         if res.rc == 0:
             logging.info(f"sent message to `{topic}`")
         else:

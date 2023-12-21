@@ -1,16 +1,17 @@
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, Bot
-from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters, CallbackContext
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, Bot
+from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler
 import logging
 import validators
 import topics
 import random
-import asyncio
 import json
+from dbaccess import MongoDbAccess
 
 class TlBot:
 
     YOUTUBE_DOWNLOAD = 0
-
+    POWER_STATE_SELECTOR = 1
+    POWER_STATE_AFTER_SELECT = 2
 
     def __init__(self, token: str, chat_id: int) -> None:
         self.__token = token
@@ -46,19 +47,65 @@ class TlBot:
         self.__bot_context = context
         logging.info("got power request")
         args = context.args
-        if len(args) != 2:
-            await update.message.reply_text("You've provided incorrect command format")
-            return
-        device_name = args[0]
-        state = True if args[1].lower() == 'on' else False
-        payload = {
-            "device_name": device_name,
-            "state": state
-        }
-        self.__publish_callback(topics.DEVICE_TOGGLE, json.dumps(payload))
-        await update.message.reply_text(f"Device {device_name} set to {state}")
-        return ConversationHandler.END
+        if len(args) == 2:
+            device_name = args[0]
+            state = True if args[1].lower() == 'on' else False
+            payload = {
+                "device_name": device_name,
+                "state": state
+            }
+            self.__publish_callback(topics.DEVICE_TOGGLE, json.dumps(payload))
+            await update.message.reply_text(f"Device {device_name} set to {state}")
+            return ConversationHandler.END
+        
+        query = update.callback_query
+        await query.answer()
+
+        keyboard = [[]]
+        with MongoDbAccess() as mongo_client:
+            for device in mongo_client.get_devices_names():
+                device_name = device[mongo_client.DEVICE_NAME_FIELD]
+                keyboard[0].append(InlineKeyboardButton(device_name, callback_data=device_name))
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            text="Choose device", reply_markup=reply_markup
+        )
+        return self.POWER_STATE_SELECTOR
     
+    async def __power_select_device_state(self, update: Update, context: CallbackContext):
+        logging.info('got device state request')
+        query = update.callback_query
+        await query.answer()
+        
+        device_name = query.data
+
+        json_data_on = json.dumps({"device_name": device_name, "state": True})
+        json_data_off = json.dumps({"device_name": device_name, "state": False})
+
+        keyboard = [
+            [
+                InlineKeyboardButton("On", callback_data=json_data_on),
+                InlineKeyboardButton("Off", callback_data=json_data_off),
+            ]
+        ]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            text=f"Choose a state for {device_name}", reply_markup=reply_markup
+        )
+        return self.POWER_STATE_AFTER_SELECT
+    
+    async def __power_after_state_select(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        logging.info('got device after state select request')
+        
+        json_data = update.callback_query.data
+        self.__publish_callback(topics.DEVICE_TOGGLE, json_data)
+
+        await update.message.reply_text('Device toggled')
+
+        return ConversationHandler.END
+
     async def __cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         self.__bot_context = context
         return ConversationHandler.END
@@ -83,7 +130,9 @@ class TlBot:
                 CommandHandler("power", self.__power_the_device, filters=filters.Chat(self.__chat_id))
             ],
             states={
-                self.YOUTUBE_DOWNLOAD: [MessageHandler(filters=filters.TEXT, callback=self.__video_download)]
+                self.YOUTUBE_DOWNLOAD: [MessageHandler(filters=filters.TEXT, callback=self.__video_download)],
+                self.POWER_STATE_SELECTOR: [CallbackQueryHandler(self.__power_select_device_state)],
+                self.POWER_STATE_AFTER_SELECT: [CallbackQueryHandler(self.__power_after_state_select)]
             },
             fallbacks=[CommandHandler("cancel", self.__cancel)]
         )
