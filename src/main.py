@@ -10,6 +10,7 @@ def main():
         logging.info('env verified')
     else:
         logging.fatal('not enough variable set')
+        return
 
     broker_host, broker_port, broker_username, broker_password = Env.get_mqtt_connection_params()
 

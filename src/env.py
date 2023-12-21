@@ -79,7 +79,7 @@ class Env:
         return environ.get(Env.TL_TOKEN)
     
     def get_tl_chat_id():
-        return environ.get(Env.TL_CHAT_ID)
+        return int(environ.get(Env.TL_CHAT_ID))
     
     def load_required_values():
         """

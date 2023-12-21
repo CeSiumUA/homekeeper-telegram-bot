@@ -57,9 +57,6 @@ class TlBot:
             self.__publish_callback(topics.DEVICE_TOGGLE, json.dumps(payload))
             await update.message.reply_text(f"Device {device_name} set to {state}")
             return ConversationHandler.END
-        
-        query = update.callback_query
-        await query.answer()
 
         keyboard = [[]]
         with MongoDbAccess() as mongo_client:
@@ -68,7 +65,7 @@ class TlBot:
                 keyboard[0].append(InlineKeyboardButton(device_name, callback_data=device_name))
 
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(
+        await update.message.reply_text(
             text="Choose device", reply_markup=reply_markup
         )
         return self.POWER_STATE_SELECTOR
