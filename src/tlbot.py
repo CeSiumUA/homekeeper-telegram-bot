@@ -96,10 +96,13 @@ class TlBot:
     async def __power_after_state_select(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.info('got device after state select request')
         
+        query = update.callback_query
+        await query.answer()
+
         json_data = update.callback_query.data
         self.__publish_callback(topics.DEVICE_TOGGLE, json_data)
 
-        await update.message.reply_text('Device toggled')
+        await query.edit_message_text('Device toggled')
 
         return ConversationHandler.END
 
